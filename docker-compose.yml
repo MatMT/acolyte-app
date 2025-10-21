@@ -1,0 +1,31 @@
+services:
+  db:
+    container_name: acolyte_postgresdb
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_USER: postgres
+      POSTGRES_DB: acolytes
+    volumes: # Volumen y guardado en carpeta local
+      - ./postgres-data:/var/lib/postgresql/data
+
+  pgAdmin:
+    depends_on:
+      - db
+    image: dpage/pgadmin4:6.17
+    ports:
+      - 8080:80
+    volumes:
+      - ./pg-admin:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_PASSWORD=1234
+      - PGADMIN_DEFAULT_EMAIL=email@email.com
+
+
+# Volumenes (Manejados y guardados por Docker)
+# volumes:
+  # acolytes:
+  #   name: acolyte_postgresdb
+  #   external: true # TRUE => Docker espera que el volumen ya este creado

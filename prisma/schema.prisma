@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model assignment_history {
+  history_id        Int                @id @default(autoincrement())
+  assignment_id     Int
+  changed_by        Int
+  previous_status   assignment_status?
+  new_status        assignment_status
+  change_reason     String?
+  created_at        DateTime?          @default(now()) @db.Timestamp(6)
+  event_assignments event_assignments  @relation(fields: [assignment_id], references: [assignment_id], onDelete: NoAction, onUpdate: NoAction)
+  users             users              @relation(fields: [changed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model event_assignments {
+  assignment_id                                       Int                  @id @default(autoincrement())
+  event_id                                            Int
+  acolyte_id                                          Int
+  status                                              assignment_status    @default(asignado)
+  replaces_assignment_id                              Int?
+  attendance_status                                   attendance_status?
+  attendance_marked_by                                Int?
+  attendance_marked_at                                DateTime?            @db.Timestamp(6)
+  created_at                                          DateTime?            @default(now()) @db.Timestamp(6)
+  assignment_history                                  assignment_history[]
+  users_event_assignments_acolyte_idTousers           users                @relation("event_assignments_acolyte_idTousers", fields: [acolyte_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_event_assignments_attendance_marked_byTousers users?               @relation("event_assignments_attendance_marked_byTousers", fields: [attendance_marked_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  events                                              events               @relation(fields: [event_id], references: [event_id], onDelete: NoAction, onUpdate: NoAction)
+  event_assignments                                   event_assignments?   @relation("event_assignmentsToevent_assignments", fields: [replaces_assignment_id], references: [assignment_id], onDelete: NoAction, onUpdate: NoAction)
+  other_event_assignments                             event_assignments[]  @relation("event_assignmentsToevent_assignments")
+}
+
+model events {
+  event_id          Int                 @id @default(autoincrement())
+  title             String              @db.VarChar(255)
+  type              event_type
+  description       String?
+  event_datetime    DateTime            @db.Timestamp(6)
+  created_by_id     Int?
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  event_assignments event_assignments[]
+  users             users?              @relation(fields: [created_by_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  notifications     notifications[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model notifications {
+  notification_id  Int       @id @default(autoincrement())
+  recipient_id     Int
+  message          String
+  is_read          Boolean   @default(false)
+  related_event_id Int?
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  users            users     @relation(fields: [recipient_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  events           events?   @relation(fields: [related_event_id], references: [event_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  user_id                                                         Int                  @id @default(autoincrement())
+  full_name                                                       String               @db.VarChar(255)
+  email                                                           String               @unique @db.VarChar(255)
+  password_hash                                                   String               @db.VarChar(255)
+  role                                                            user_role
+  created_at                                                      DateTime?            @default(now()) @db.Timestamp(6)
+  assignment_history                                              assignment_history[]
+  event_assignments_event_assignments_acolyte_idTousers           event_assignments[]  @relation("event_assignments_acolyte_idTousers")
+  event_assignments_event_assignments_attendance_marked_byTousers event_assignments[]  @relation("event_assignments_attendance_marked_byTousers")
+  events                                                          events[]
+  notifications                                                   notifications[]
+}
+
+enum assignment_status {
+  asignado
+  rechazado
+  reemplazo_propuesto
+  reemplazo_aceptado
+  reemplazo_declinado
+  asistencia_marcada
+}
+
+enum attendance_status {
+  puntual
+  tardia
+  ausente
+}
+
+enum event_type {
+  solemne
+  ordinaria
+}
+
+enum user_role {
+  coordinador
+  acolito
+}
